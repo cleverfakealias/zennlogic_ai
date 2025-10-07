@@ -83,3 +83,4 @@ mcp-langgraph-rag/
 ```
 
 The architecture intentionally keeps HTTP frameworks optional—drop `app.mcp_server` into a FastAPI/Starlette task if you want REST endpoints later.
+
