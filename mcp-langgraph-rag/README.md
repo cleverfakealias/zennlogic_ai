@@ -11,25 +11,25 @@ A reference implementation of a Model Context Protocol (MCP) server that wraps a
 - 🐋 **Dockerized services** for the MCP server and ingestion worker.
 - 🧹 **Pre-commit hooks** with `ruff`, `black`, and `mypy` to keep contributions consistent.
 
-## Quickstart
+## Quickstart (PowerShell)
 
-```bash
-# 1. Create a virtual environment (Python 3.13)
+```powershell
+# 1. Create and activate a virtual environment (Python 3.13)
 python -m venv .venv
-./.venv/Scripts/activate            # PowerShell: .\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 
-# 2. Install the project with dev tools
-pip install --upgrade pip
-pip install .[dev]
+# 2. Install the project with development extras
+python -m pip install --upgrade pip
+python -m pip install ".[dev]"
 
 # 3. Configure environment variables
-copy .env.example .env               # PowerShell copy command
+Copy-Item .env.example .env
 # populate OPENAI_API_KEY if you want real embeddings
 
 # 4. Ingest bundled docs into FAISS
 python -m scripts.build_index
 
-# 5. Launch the MCP server (stdio mode)
+# 5. Launch the MCP server (stdio transport)
 python -m app.mcp_server
 ```
 
@@ -54,16 +54,23 @@ The RAG utilities are isolated in `app/tools`. To switch vector stores:
 
 ## Development Workflow
 
-```bash
-make install      # create a virtualenv (via uv) and install dependencies
-make fmt          # run black
-make lint         # run ruff
-make test         # run pytest
-make ingest       # build the local FAISS index
-make run-mcp      # start the MCP server locally
-make up           # docker-compose up (server + ingestion worker)
-make down         # docker-compose down
+```powershell
+# Core tasks (PowerShell friendly)
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install ".[dev]"
+.\.venv\Scripts\python.exe -m black app scripts tests
+.\.venv\Scripts\python.exe -m ruff check app scripts tests
+.\.venv\Scripts\python.exe -m mypy app scripts
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m scripts.build_index
+.\.venv\Scripts\python.exe -m app.mcp_server
+
+# Optional Docker workflows
+docker compose up --build
+docker compose down
 ```
+
+> Prefer `make`? Install GNU Make (e.g., `winget install GnuWin32.Make`) and use the provided `Makefile` targets instead of the individual commands above.
 
 ## Project Layout
 
