@@ -1,0 +1,165 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "zennlogic_ai_service"
+version = "0.1.0"
+description = "Applied AI RAG/chat service"
+authors = [{ name = "cleverfakealias", email = "author@example.com" }]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "httpx",
+    "langchain>=0.3",
+    "langgraph>=0.2",
+    "langsmith>=0.1",
+    "faiss-cpu",
+    "annoy",
+    "numpy",
+    "scipy",
+    "sentence-transformers",
+    "boto3",
+    "botocore",
+    "structlog",
+    "python-dotenv",
+    "pydantic>=2",
+]
+
+[project.optional-dependencies]
+litellm = ["litellm"]
+dev = ["pre-commit", "ruff", "mypy", "pytest", "pytest-cov", "moto"]
+
+[project.scripts]
+mcp-server = "zennlogic_ai_service.mcp_server.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/zennlogic_ai_service"]
+
+[tool.ruff]
+# Set the maximum line length
+line-length = 100
+
+# Assume Python 3.12
+target-version = "py312"
+
+# Exclude common directories
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+[tool.ruff.lint]
+# Enable these rule categories:
+# E: pycodestyle errors
+# F: pyflakes
+# I: isort (import sorting)
+# B: flake8-bugbear (likely bugs and design problems)
+# C: flake8-comprehensions (better list/dict/set comprehensions)
+# D: pydocstyle (docstring conventions)
+# N: pep8-naming (naming conventions)
+# Q: flake8-quotes (quote style)
+# T: flake8-print (print statement checker)
+# UP: pyupgrade (upgrade syntax for newer Python)
+# RUF: Ruff-specific rules
+select = ["E", "F", "I", "B", "C", "D", "N", "Q", "T", "UP", "RUF"]
+
+# Ignore specific rules (add as needed)
+ignore = [
+    # "D100",  # Missing docstring in public module
+    # "D101",  # Missing docstring in public class
+    # "D102",  # Missing docstring in public method
+    # "D103",  # Missing docstring in public function
+    # "D104",  # Missing docstring in public package
+    # "D105",  # Missing docstring in magic method
+    # "D107",  # Missing docstring in __init__
+]
+
+# Allow autofix for all enabled rules (when `--fix` is used)
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when they start with underscore
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore certain rules in test files
+"tests/**/*.py" = [
+    "D",    # Don't require docstrings in tests
+    "S101", # Allow assert statements in tests
+    "ARG",  # Allow unused function arguments in tests
+    "FBT",  # Allow boolean positional arguments in tests
+]
+
+# Ignore import rules in __init__.py files
+"**/__init__.py" = [
+    "F401", # Unused imports (often used for re-exporting)
+    "F403", # Star imports
+]
+
+[tool.ruff.lint.isort]
+# Configure import sorting
+known-first-party = ["src"]
+force-single-line = false
+lines-after-imports = 2
+force-sort-within-sections = true
+
+[tool.ruff.lint.pydocstyle]
+# Use Google-style docstrings
+convention = "google"
+
+[tool.ruff.lint.mccabe]
+# Set maximum cyclomatic complexity
+max-complexity = 10
+
+[tool.ruff.format]
+# Use double quotes for strings
+quote-style = "double"
+
+# Indent with spaces
+indent-style = "space"
+
+# Respect magic trailing commas
+skip-magic-trailing-comma = false
+
+# Use Unix line endings
+line-ending = "auto"
+
+# Enable auto-formatting of code examples in docstrings
+docstring-code-format = true
+
+# Set the line length limit for docstrings
+docstring-code-line-length = "dynamic"
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+strict = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+addopts = "--cov=src/zennlogic_ai_service --cov-report=term-missing"
+
+[tool.pre-commit]
+hooks = ["ruff", "mypy", "trailing-whitespace"]

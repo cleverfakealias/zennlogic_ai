@@ -1,0 +1,331 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Application resources for ZennLogic (ALB, Auto Scaling, EC2)
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues: [dev, staging, prod]
+    Description: Environment name
+
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues: [t3.micro, t3.small, t3.medium]
+    Description: EC2 instance type
+
+  KeyName:
+    Type: String
+    Default: ''
+    Description: (Optional) EC2 key pair name
+
+  MinInstances:
+    Type: Number
+    Default: 2
+    MinValue: 1
+    MaxValue: 10
+
+  MaxInstances:
+    Type: Number
+    Default: 4
+    MinValue: 1
+    MaxValue: 10
+
+  DesiredInstances:
+    Type: Number
+    Default: 2
+    MinValue: 1
+    MaxValue: 10
+
+Conditions:
+  HasKeyName: !Not [!Equals [!Ref KeyName, '']]
+
+Resources:
+  # Application Load Balancer
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub 'ZennLogic-ALB-${Environment}'
+      Scheme: internet-facing
+      Type: application
+      SecurityGroups:
+        - !ImportValue
+            Fn::Sub: 'ZennLogic-${Environment}-ALB-SG'
+      Subnets:
+        - !ImportValue
+            Fn::Sub: 'ZennLogic-${Environment}-PublicSubnet1'
+        - !ImportValue
+            Fn::Sub: 'ZennLogic-${Environment}-PublicSubnet2'
+      Tags:
+        - Key: Name
+          Value: !Sub 'ZennLogic-ALB-${Environment}'
+        - Key: Environment
+          Value: !Ref Environment
+
+  ALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub 'ZennLogic-TG-${Environment}'
+      Port: 80
+      Protocol: HTTP
+      VpcId: !ImportValue
+        Fn::Sub: 'ZennLogic-${Environment}-VPC'
+      HealthCheckEnabled: true
+      HealthCheckPath: /health
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      TargetType: instance
+      Tags:
+        - Key: Name
+          Value: !Sub 'ZennLogic-TG-${Environment}'
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBTargetGroup
+
+  # CloudWatch Log Groups
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/ec2/zennlogic/${Environment}/api'
+      RetentionInDays: 30
+
+  NginxAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/ec2/zennlogic/${Environment}/nginx-access'
+      RetentionInDays: 30
+
+  NginxErrorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/ec2/zennlogic/${Environment}/nginx-error'
+      RetentionInDays: 30
+
+  # Launch Template
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub 'ZennLogic-LT-${Environment}'
+      LaunchTemplateData:
+        ImageId: !FindInMap [RegionMap, !Ref AWS::Region, AMI]
+        InstanceType: !Ref InstanceType
+        KeyName: !If [HasKeyName, !Ref KeyName, !Ref AWS::NoValue]
+        IamInstanceProfile:
+          Arn: !ImportValue
+            Fn::Sub: 'ZennLogic-${Environment}-InstanceProfile'
+        SecurityGroupIds:
+          - !ImportValue
+              Fn::Sub: 'ZennLogic-${Environment}-Instance-SG'
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            set -e
+
+            # Update system
+            yum update -y
+
+            # Install CloudWatch agent
+            wget https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+            rpm -U ./amazon-cloudwatch-agent.rpm
+
+            # Install Python 3.12
+            amazon-linux-extras install python3.12 -y
+            pip3 install --upgrade pip
+
+            # Install NGINX
+            amazon-linux-extras install nginx1 -y
+
+            # Clone application
+            cd /home/ec2-user
+            git clone https://github.com/cleverfakealias/zennlogic_ai.git
+            cd zennlogic_ai
+            pip3 install -r requirements.txt
+
+            # Configure CloudWatch agent
+            cat > /opt/aws/amazon-cloudwatch-agent/etc/cloudwatch-config.json <<'EOF'
+            {
+              "logs": {
+                "logs_collected": {
+                  "files": {
+                    "collect_list": [
+                      {
+                        "file_path": "/var/log/zennlogic/api.log",
+                        "log_group_name": "/aws/ec2/zennlogic/${Environment}/api",
+                        "log_stream_name": "{instance_id}"
+                      },
+                      {
+                        "file_path": "/var/log/nginx/access.log",
+                        "log_group_name": "/aws/ec2/zennlogic/${Environment}/nginx-access",
+                        "log_stream_name": "{instance_id}"
+                      },
+                      {
+                        "file_path": "/var/log/nginx/error.log",
+                        "log_group_name": "/aws/ec2/zennlogic/${Environment}/nginx-error",
+                        "log_stream_name": "{instance_id}"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+            EOF
+
+            # Start CloudWatch agent
+            /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+              -a fetch-config \
+              -m ec2 \
+              -s \
+              -c file:/opt/aws/amazon-cloudwatch-agent/etc/cloudwatch-config.json
+
+            # Create log directory
+            mkdir -p /var/log/zennlogic
+            chown ec2-user:ec2-user /var/log/zennlogic
+
+            # Configure systemd services
+            cp infra/systemd/*.service /etc/systemd/system/
+            systemctl daemon-reload
+            systemctl enable zennlogic-ai-api zennlogic-ai-mcp
+            systemctl start zennlogic-ai-api zennlogic-ai-mcp
+
+            # Configure NGINX
+            cp infra/nginx/nginx.conf /etc/nginx/nginx.conf
+            systemctl enable nginx
+            systemctl start nginx
+
+            # Signal success
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AutoScalingGroup --region ${AWS::Region}
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub 'ZennLogic-Instance-${Environment}'
+              - Key: Environment
+                Value: !Ref Environment
+        Monitoring:
+          Enabled: true
+
+  # Auto Scaling Group
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Sub 'ZennLogic-ASG-${Environment}'
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      MinSize: !Ref MinInstances
+      MaxSize: !Ref MaxInstances
+      DesiredCapacity: !Ref DesiredInstances
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 300
+      VPCZoneIdentifier:
+        - !ImportValue
+            Fn::Sub: 'ZennLogic-${Environment}-PublicSubnet1'
+        - !ImportValue
+            Fn::Sub: 'ZennLogic-${Environment}-PublicSubnet2'
+      TargetGroupARNs:
+        - !Ref ALBTargetGroup
+      Tags:
+        - Key: Name
+          Value: !Sub 'ZennLogic-ASG-Instance-${Environment}'
+          PropagateAtLaunch: true
+        - Key: Environment
+          Value: !Ref Environment
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Ref DesiredInstances
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        PauseTime: PT5M
+        WaitOnResourceSignals: true
+
+  # Auto Scaling Policy
+  ScaleUpPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: 70.0
+
+  # CloudWatch Alarms
+  HighCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'ZennLogic-HighCPU-${Environment}'
+      AlarmDescription: Alert when CPU exceeds 80%
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref AutoScalingGroup
+
+  UnhealthyHostAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'ZennLogic-UnhealthyHosts-${Environment}'
+      AlarmDescription: Alert when unhealthy hosts detected
+      MetricName: UnHealthyHostCount
+      Namespace: AWS/ApplicationELB
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: TargetGroup
+          Value: !GetAtt ALBTargetGroup.TargetGroupFullName
+        - Name: LoadBalancer
+          Value: !GetAtt ApplicationLoadBalancer.LoadBalancerFullName
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      AMI: ami-0fff1b9a61dec8a5f
+    us-east-2:
+      AMI: ami-0a606d8395a538502
+    us-west-1:
+      AMI: ami-0a5c7a7b8b4c0d9a0
+    us-west-2:
+      AMI: ami-0c94855ba95c574c8
+    eu-west-1:
+      AMI: ami-0d71ea30463e0ff8d
+    eu-central-1:
+      AMI: ami-0faab6bdbac9486fb
+
+Outputs:
+  LoadBalancerDNS:
+    Description: ALB DNS name
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+    Export:
+      Name: !Sub 'ZennLogic-${Environment}-ALB-DNS'
+
+  LoadBalancerURL:
+    Description: Application URL
+    Value: !Sub 'http://${ApplicationLoadBalancer.DNSName}'
+
+  AutoScalingGroupName:
+    Description: Auto Scaling Group name
+    Value: !Ref AutoScalingGroup
+    Export:
+      Name: !Sub 'ZennLogic-${Environment}-ASG'
