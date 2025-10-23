@@ -3,7 +3,7 @@ Purpose: Applied AI RAG/chat service (REST API + optional MCP server).
 
 Runtime: Python ≥ 3.12
 
-Core Libraries: FastAPI, Uvicorn, httpx, LangChain/LangGraph/LangSmith, FAISS/Annoy, sentence-transformers, NumPy/SciPy, boto3/botocore
+Core Libraries: FastAPI, Uvicorn, httpx, LangChain/LangGraph/LangSmith, FAISS, sentence-transformers, NumPy/SciPy, boto3/botocore
 
 Infra & DX: pydantic v2, structlog, python-dotenv, pytest (+ pytest-cov), mypy (strict), ruff (lint+format), pre-commit, optional litellm
 
