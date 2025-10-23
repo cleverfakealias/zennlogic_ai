@@ -1,0 +1,231 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		// --- Python / Env ---
+		"python.terminal.activateEnvironment": true,
+		// Let VS Code auto-pick .venv; don't hardcode a platform path.
+		// If you must pin later, do it per-developer in local .vscode/settings.json
+		// --- Formatting & Linting (Ruff-first) ---
+		"editor.formatOnSave": true,
+		"[python]": {
+			"editor.defaultFormatter": "charliermarsh.ruff"
+		},
+		"ruff.format.enable": true,
+		"ruff.lint.enable": true,
+		"ruff.organizeImports": true,
+		// --- Testing ---
+		"python.testing.pytestEnabled": true,
+		"python.testing.pytestArgs": [
+			"tests"
+		],
+		// --- Editor hygiene ---
+		"editor.rulers": [
+			100
+		],
+		"files.trimTrailingWhitespace": true,
+		"files.insertFinalNewline": true,
+		// --- File associations ---
+		"files.associations": {
+			"*.env*": "properties",
+			"Dockerfile*": "dockerfile",
+			"Makefile": "makefile",
+			"justfile": "makefile"
+		},
+		// --- Ignore junk in search/explorer ---
+		"search.exclude": {
+			"**/.venv": true,
+			"**/__pycache__": true,
+			"**/*.pyc": true,
+			"**/.pytest_cache": true,
+			"**/.ruff_cache": true,
+			"**/.mypy_cache": true,
+			"**/node_modules": true,
+			"**/dist": true,
+			"**/build": true,
+			"**/.coverage": true
+		},
+		"files.exclude": {
+			"**/.venv": true,
+			"**/__pycache__": true,
+			"**/*.pyc": true,
+			"**/.pytest_cache": true,
+			"**/.ruff_cache": true,
+			"**/.mypy_cache": true,
+			"**/node_modules": true,
+			"**/dist": true,
+			"**/build": true,
+			"**/.coverage": true
+		},
+		// --- Git ---
+		"git.autofetch": true,
+		"git.confirmSync": false,
+		// --- Terminal (modern setting) ---
+		"terminal.integrated.defaultProfile.windows": "PowerShell",
+		// --- Env file (handy for API keys/secrets) ---
+		"python.envFile": "${workspaceFolder}/zennlogic_ai/.env"
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-python.python",
+			"charliermarsh.ruff",
+			"ms-python.mypy-type-checker",
+			"redhat.vscode-yaml",
+			"ms-vscode.makefile-tools",
+			"ms-azuretools.vscode-docker",
+			"github.copilot",
+			"github.copilot-chat",
+			"tamasfe.even-better-toml"
+		]
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "Setup Development Environment",
+				"type": "shell",
+				"command": "cd zennlogic_ai && uv sync && uv run pre-commit install",
+				"group": "build",
+				"presentation": {
+					"echo": true,
+					"reveal": "always",
+					"focus": false,
+					"panel": "shared"
+				}
+			},
+			{
+				"label": "Run Tests",
+				"type": "shell",
+				"command": "cd zennlogic_ai && uv run pytest",
+				"group": {
+					"kind": "test",
+					"isDefault": true
+				},
+				"presentation": {
+					"echo": true,
+					"reveal": "always",
+					"focus": false,
+					"panel": "shared"
+				}
+			},
+			{
+				"label": "Run Linting",
+				"type": "shell",
+				"command": "cd zennlogic_ai && uv run ruff check src tests",
+				"group": "test",
+				"presentation": {
+					"echo": true,
+					"reveal": "always",
+					"focus": false,
+					"panel": "shared"
+				}
+			},
+			{
+				"label": "Format Code",
+				"type": "shell",
+				"command": "cd zennlogic_ai && uv run ruff format src tests",
+				"group": "build",
+				"presentation": {
+					"echo": true,
+					"reveal": "always",
+					"focus": false,
+					"panel": "shared"
+				}
+			},
+			{
+				"label": "Type Check",
+				"type": "shell",
+				"command": "cd zennlogic_ai && uv run mypy src",
+				"group": "test",
+				"presentation": {
+					"echo": true,
+					"reveal": "always",
+					"focus": false,
+					"panel": "shared"
+				}
+			},
+			{
+				"label": "Start REST API",
+				"type": "shell",
+				"command": "cd zennlogic_ai && uv run uvicorn zennlogic_ai_service.rest.app:app --reload",
+				"group": "build",
+				"isBackground": true,
+				"presentation": {
+					"echo": true,
+					"reveal": "always",
+					"focus": false,
+					"panel": "shared"
+				}
+			},
+			{
+				"label": "Start MCP Server",
+				"type": "shell",
+				"command": "cd zennlogic_ai && uv run mcp-server",
+				"group": "build",
+				"isBackground": true,
+				"presentation": {
+					"echo": true,
+					"reveal": "always",
+					"focus": false,
+					"panel": "shared"
+				}
+			}
+		]
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "Debug REST API",
+				"type": "debugpy",
+				"request": "launch",
+				"module": "uvicorn",
+				"args": [
+					"zennlogic_ai_service.rest.app:app",
+					"--reload",
+					"--host",
+					"0.0.0.0",
+					"--port",
+					"8000"
+				],
+				"cwd": "${workspaceFolder}/zennlogic_ai",
+				"env": {
+					"PYTHONPATH": "${workspaceFolder}/zennlogic_ai/src"
+				},
+				"console": "integratedTerminal",
+				"justMyCode": false
+			},
+			{
+				"name": "Debug MCP Server",
+				"type": "debugpy",
+				"request": "launch",
+				"module": "zennlogic_ai_service.mcp_server.server",
+				"cwd": "${workspaceFolder}/zennlogic_ai",
+				"env": {
+					"PYTHONPATH": "${workspaceFolder}/zennlogic_ai/src"
+				},
+				"console": "integratedTerminal",
+				"justMyCode": false
+			},
+			{
+				"name": "Debug Tests",
+				"type": "debugpy",
+				"request": "launch",
+				"module": "pytest",
+				"args": [
+					"tests/",
+					"-v"
+				],
+				"cwd": "${workspaceFolder}/zennlogic_ai",
+				"env": {
+					"PYTHONPATH": "${workspaceFolder}/zennlogic_ai/src"
+				},
+				"console": "integratedTerminal",
+				"justMyCode": false
+			}
+		]
+	}
+}

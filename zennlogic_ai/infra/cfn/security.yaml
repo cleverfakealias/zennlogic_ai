@@ -1,0 +1,159 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Security resources for ZennLogic (IAM roles, Security Groups)
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues: [dev, staging, prod]
+    Description: Environment name
+
+  AllowedSSHCidr:
+    Type: String
+    Default: ''
+    Description: (Optional) CIDR for SSH access. Leave empty to disable SSH.
+
+Conditions:
+  AllowSSH: !Not [!Equals [!Ref AllowedSSHCidr, '']]
+
+Resources:
+  # ALB Security Group
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Application Load Balancer
+      VpcId: !ImportValue
+        Fn::Sub: 'ZennLogic-${Environment}-VPC'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP access
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS access
+      Tags:
+        - Key: Name
+          Value: !Sub 'ZennLogic-ALB-SG-${Environment}'
+
+  # Instance Security Group
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for ZennLogic instances
+      VpcId: !ImportValue
+        Fn::Sub: 'ZennLogic-${Environment}-VPC'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+          Description: HTTP from ALB
+        - !If
+          - AllowSSH
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: !Ref AllowedSSHCidr
+            Description: SSH from allowed CIDR
+          - !Ref AWS::NoValue
+      Tags:
+        - Key: Name
+          Value: !Sub 'ZennLogic-Instance-SG-${Environment}'
+
+  # EC2 IAM Role
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'ZennLogic-EC2Role-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Policies:
+        - PolicyName: S3BucketAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !ImportValue
+                      Fn::Sub: 'ZennLogic-${Environment}-S3BucketArn'
+                  - !Sub
+                    - '${BucketArn}/*'
+                    - BucketArn: !ImportValue
+                        Fn::Sub: 'ZennLogic-${Environment}-S3BucketArn'
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                Resource: !ImportValue
+                  Fn::Sub: 'ZennLogic-${Environment}-DynamoTableArn'
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !ImportValue
+                  Fn::Sub: 'ZennLogic-${Environment}-ApiKeySecretArn'
+      Tags:
+        - Key: Name
+          Value: !Sub 'ZennLogic-EC2Role-${Environment}'
+        - Key: Environment
+          Value: !Ref Environment
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub 'ZennLogic-InstanceProfile-${Environment}'
+      Roles:
+        - !Ref EC2Role
+
+Outputs:
+  ALBSecurityGroupId:
+    Description: ALB Security Group ID
+    Value: !Ref ALBSecurityGroup
+    Export:
+      Name: !Sub 'ZennLogic-${Environment}-ALB-SG'
+
+  InstanceSecurityGroupId:
+    Description: Instance Security Group ID
+    Value: !Ref InstanceSecurityGroup
+    Export:
+      Name: !Sub 'ZennLogic-${Environment}-Instance-SG'
+
+  InstanceProfileArn:
+    Description: Instance Profile ARN
+    Value: !GetAtt InstanceProfile.Arn
+    Export:
+      Name: !Sub 'ZennLogic-${Environment}-InstanceProfile'
+
+  EC2RoleName:
+    Description: EC2 IAM Role Name
+    Value: !Ref EC2Role
+    Export:
+      Name: !Sub 'ZennLogic-${Environment}-EC2Role'

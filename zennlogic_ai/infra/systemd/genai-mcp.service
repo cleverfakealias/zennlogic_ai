@@ -1,0 +1,15 @@
+[Unit]
+Description=zennlogic_ai_service MCP server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/env bash -lc 'uv run mcp-server'
+Restart=always
+RestartSec=5
+User=ec2-user
+WorkingDirectory=/home/ec2-user/zennlogic_ai_service
+EnvironmentFile=/home/ec2-user/zennlogic_ai_service/.env
+
+[Install]
+WantedBy=multi-user.target

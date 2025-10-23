@@ -1,0 +1,2 @@
+#cloud-config
+# TODO: Add EC2 bootstrap steps (install Python 3.12, uv, NGINX, clone repo, enable systemd units)
