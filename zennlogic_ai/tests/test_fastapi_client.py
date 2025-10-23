@@ -2,7 +2,7 @@
 
 from fastapi.testclient import TestClient
 
-from zennlogic_ai_service.rest.app import app
+from service.rest.app import app
 
 
 client = TestClient(app)

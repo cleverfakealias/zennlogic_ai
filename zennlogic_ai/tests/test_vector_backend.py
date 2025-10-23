@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from zennlogic_ai_service.rag.vector_backends.factory import get_vector_backend
+from service.rag.vector_backends.factory import get_vector_backend
 
 
 @pytest.mark.parametrize("backend", ["faiss", "annoy"])

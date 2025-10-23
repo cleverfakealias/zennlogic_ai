@@ -1,7 +1,6 @@
 """API key auth dependency for FastAPI."""
 
 from fastapi import Header, HTTPException, status
-
 from zennlogic_ai_service.aws.ssm import get_api_key
 from zennlogic_ai_service.config import settings
 

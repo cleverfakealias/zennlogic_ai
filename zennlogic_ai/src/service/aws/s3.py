@@ -1,7 +1,6 @@
 """S3 helpers for snapshot sync."""
 
 import boto3
-
 from zennlogic_ai_service.config import settings
 
 

@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/env bash -lc 'uv run uvicorn src.zennlogic_ai_service.rest.app:app --host 0.0.0.0 --port 8000 --workers 1 --loop uvloop --http httptools --timeout-keep-alive 15'
+ExecStart=/usr/bin/env bash -lc 'uv run uvicorn src.service.rest.app:app --host 0.0.0.0 --port 8000 --workers 1 --loop uvloop --http httptools --timeout-keep-alive 15'
 Restart=always
 RestartSec=5
 User=ec2-user

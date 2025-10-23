@@ -150,7 +150,7 @@
 			{
 				"label": "Start REST API",
 				"type": "shell",
-				"command": "cd zennlogic_ai && uv run uvicorn zennlogic_ai_service.rest.app:app --reload",
+				"command": "cd zennlogic_ai && uv run uvicorn service.rest.app:app --reload",
 				"group": "build",
 				"isBackground": true,
 				"presentation": {
@@ -184,7 +184,7 @@
 				"request": "launch",
 				"module": "uvicorn",
 				"args": [
-					"zennlogic_ai_service.rest.app:app",
+					"service.rest.app:app",
 					"--reload",
 					"--host",
 					"0.0.0.0",

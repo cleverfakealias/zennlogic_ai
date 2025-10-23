@@ -3,10 +3,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "zennlogic_ai_service"
+name = "service"
 version = "0.1.0"
 description = "Applied AI RAG/chat service"
-authors = [{ name = "cleverfakealias", email = "author@example.com" }]
+authors = [{ name = "cleverfakealias", email = "me@benhickman.dev" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -34,10 +34,10 @@ litellm = ["litellm"]
 dev = ["pre-commit", "ruff", "mypy", "pytest", "pytest-cov", "moto"]
 
 [project.scripts]
-mcp-server = "zennlogic_ai_service.mcp_server.server:main"
+mcp-server = "service.mcp_server.server:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/zennlogic_ai_service"]
+packages = ["src/service"]
 
 [tool.ruff]
 # Set the maximum line length
@@ -159,7 +159,7 @@ strict = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-addopts = "--cov=src/zennlogic_ai_service --cov-report=term-missing"
+addopts = "--cov=src/service --cov-report=term-missing"
 
 [tool.pre-commit]
 hooks = ["ruff", "mypy", "trailing-whitespace"]
