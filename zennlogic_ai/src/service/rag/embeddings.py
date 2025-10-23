@@ -1,7 +1,6 @@
 """Embeddings interface and helpers."""
 
 from sentence_transformers import SentenceTransformer
-
 from zennlogic_ai_service.config import settings
 
 

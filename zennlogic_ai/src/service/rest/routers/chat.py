@@ -3,7 +3,6 @@
 from typing import Any
 
 from fastapi import APIRouter, Body
-
 from zennlogic_ai_service.config import settings
 from zennlogic_ai_service.llm.chains import LLMChain
 

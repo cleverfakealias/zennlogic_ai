@@ -4,7 +4,6 @@ import os
 from typing import Any
 
 import numpy as np
-
 from zennlogic_ai_service.config import settings
 from zennlogic_ai_service.rag.embeddings import Embeddings
 from zennlogic_ai_service.rag.models import Document

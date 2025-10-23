@@ -3,7 +3,6 @@
 from typing import Any
 
 from fastapi import APIRouter, Body, Query
-
 from zennlogic_ai_service.config import settings
 from zennlogic_ai_service.rag.models import Document
 from zennlogic_ai_service.rag.pipeline import RAGPipeline

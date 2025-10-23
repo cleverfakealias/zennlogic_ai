@@ -74,7 +74,7 @@ cp .env.example .env
 Start the REST API server:
 
 ```bash
-uv run uvicorn zennlogic_ai_service.rest.app:app --reload
+uv run uvicorn service.rest.app:app --reload
 ```
 
 The API will be available at `http://localhost:8000`
@@ -161,7 +161,7 @@ uv run pytest --cov=src/zennlogic_ai_service
 Use the provided scripts or run directly with uvicorn:
 
 ```bash
-uv run uvicorn zennlogic_ai_service.rest.app:app --host 0.0.0.0 --port 8000
+uv run uvicorn service.rest.app:app --host 0.0.0.0 --port 8000
 ```
 
 ### AWS Deployment
