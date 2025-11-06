@@ -35,7 +35,17 @@ mcp = ["fastapi", "uvicorn[standard]", "boto3", "botocore"]
 
 litellm = ["litellm"]
 
-dev = ["pre-commit", "ruff", "mypy", "pytest", "pytest-cov", "moto"]
+dev = [
+    "pre-commit",
+    "ruff",
+    "mypy",
+    "pytest",
+    "pytest-cov",
+    "moto",
+    # Type stubs for boto3 used in tests and mypy checks
+    "mypy-boto3-s3",
+    "mypy-boto3-ssm",
+]
 
 # Convenience aggregate for local full-stack development (includes vector,
 # langchain, and aws). Avoid using `full` in production images; prefer explicit
