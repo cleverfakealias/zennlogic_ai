@@ -1,7 +1,7 @@
 """RAG pipeline: ingest, search, answer."""
 
 import os
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -23,9 +23,13 @@ class RAGPipeline:
         """Ingest documents into vector store."""
         texts = [doc.text for doc in docs]
         metadatas = [doc.metadata for doc in docs]
-        self.embeddings.embed(texts)  # Compute embeddings (for consistency, though not stored)
-        self.vector_store.add(texts, metadatas)
-        os.makedirs(os.path.dirname(".data/vector/index"), exist_ok=True)
+        vectors = np.array(self.embeddings.embed(texts), dtype=np.float32)
+        # Add vectors + payloads to the underlying index
+        if hasattr(self.vector_store, "add_vectors"):
+            self.vector_store.add_vectors(vectors, texts, metadatas)
+        else:  # pragma: no cover - legacy path
+            self.vector_store.add(texts, metadatas)
+        os.makedirs(".data/vector", exist_ok=True)
         self.vector_store.persist(".data/vector/index")
         # Optionally push to S3
         return {"count": len(texts)}
@@ -33,8 +37,13 @@ class RAGPipeline:
     def search(self, query: str, k: int = 5) -> list[tuple[str, dict[str, object], float]]:
         """Search for relevant documents using FAISS only."""
         query_vec = self.embeddings.embed([query])[0]
-        vec = np.array(query_vec)
-        return self.vector_store.search(vec, k)
+        vec = np.array(query_vec, dtype=np.float32)
+        # Underlying vector backend returns a runtime list/tuple structure.
+        # Cast to the declared return type for static checking.
+        return cast(
+            list[tuple[str, dict[str, object], float]],
+            self.vector_store.search(vec, k),
+        )
 
     def answer(self, query: str) -> Any:
         """Answer query using retrieved documents."""
