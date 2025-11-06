@@ -1,18 +1,24 @@
 import os
-from pathlib import Path
-import sys
 
 
-# Ensure the project's `src` directory is on sys.path during tests so the
-# `service` package (under src/service) can be imported without installing the
-# package into the environment. This keeps tests fast and hermetic.
-ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
-sys.path.insert(0, str(SRC))
+# Tests should run against an editable install of the package (recommended):
+#   pip install -e .[dev,test]
+# If the package is not installed, fail fast with a clear instruction.
+try:
+    # Verify the package is installed; import only to check availability.
+    # The import is only used to confirm the package is importable.
+    import importlib
 
-import boto3  # noqa: E402
-from moto import mock_aws  # noqa: E402
-import pytest  # noqa: E402
+    importlib.import_module("service")
+except Exception as exc:  # pragma: no cover - developer environment error
+    raise RuntimeError(
+        "Tests require the package to be installed in editable mode. "
+        "Run: `pip install -e .[dev,test]` from the repo root"
+    ) from exc
+
+import boto3
+from moto import mock_aws
+import pytest
 
 
 # Make sure boto3 has a default region to avoid NoRegionError

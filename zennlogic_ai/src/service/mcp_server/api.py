@@ -9,7 +9,7 @@ exposed over an internal HTTP endpoint.
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from service.mcp_server.server import MCPServer
 from service.mcp_server.tools import health, s3
@@ -45,8 +45,14 @@ class CallBody(BaseModel):
     """
 
     args: list[Any] | None = None
-    # Use an internal name that avoids any potential module-level name clashes.
-    kwargs_: dict[str, Any] | None = None
+    # Keep the external JSON key as "kwargs" but use a safe Python name
+    # internally. Pydantic aliasing will populate this field from the
+    # external "kwargs" key so endpoint code can refer to `body.kwargs_`.
+    kwargs_: dict[str, Any] | None = Field(None, alias="kwargs")
+
+    # Allow population by field name when constructing the model programmatically
+    # while still accepting the external alias in JSON payloads.
+    model_config = {"populate_by_name": True}
 
 
 @app.get("/mcp/health")
