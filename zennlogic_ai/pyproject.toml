@@ -10,28 +10,48 @@ authors = [{ name = "cleverfakealias", email = "me@benhickman.dev" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
+dependencies = []
+
+[project.optional-dependencies]
+# Optional extras for component-specific installs. Install only what's needed
+# per service (e.g. `pip install .[api]` or `pip install .[vector,aws]`).
+
+api = [
     "fastapi",
     "uvicorn[standard]",
     "httpx",
-    "langchain>=0.3",
-    "langgraph>=0.2",
-    "langsmith>=0.1",
-    "faiss-cpu",
-    "annoy",
-    "numpy",
-    "scipy",
-    "sentence-transformers",
-    "boto3",
-    "botocore",
     "structlog",
     "python-dotenv",
     "pydantic>=2",
 ]
 
-[project.optional-dependencies]
+langchain = ["langchain>=0.3", "langgraph>=0.2", "langsmith>=0.1"]
+
+vector = ["faiss-cpu", "annoy", "sentence-transformers", "numpy", "scipy"]
+
+aws = ["boto3", "botocore"]
+
+mcp = ["fastapi", "uvicorn[standard]", "boto3", "botocore"]
+
 litellm = ["litellm"]
+
 dev = ["pre-commit", "ruff", "mypy", "pytest", "pytest-cov", "moto"]
+
+# Convenience aggregate for local full-stack development (includes vector,
+# langchain, and aws). Avoid using `full` in production images; prefer explicit
+# extras for each service to keep images small.
+full = [
+    "langchain>=0.3",
+    "langgraph>=0.2",
+    "langsmith>=0.1",
+    "faiss-cpu",
+    "annoy",
+    "sentence-transformers",
+    "numpy",
+    "scipy",
+    "boto3",
+    "botocore",
+]
 
 [project.scripts]
 mcp-server = "service.mcp_server.server:main"
@@ -43,8 +63,8 @@ packages = ["src/service"]
 # Set the maximum line length
 line-length = 100
 
-# Assume Python 3.12
-target-version = "py312"
+# Assume Python 3.13
+target-version = "py313"
 
 # Exclude common directories
 exclude = [

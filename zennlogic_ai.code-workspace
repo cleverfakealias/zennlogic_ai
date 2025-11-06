@@ -202,7 +202,7 @@
 				"name": "Debug MCP Server",
 				"type": "debugpy",
 				"request": "launch",
-				"module": "zennlogic_ai_service.mcp_server.server",
+				"module": "service.mcp_server.server",
 				"cwd": "${workspaceFolder}/zennlogic_ai",
 				"env": {
 					"PYTHONPATH": "${workspaceFolder}/zennlogic_ai/src"

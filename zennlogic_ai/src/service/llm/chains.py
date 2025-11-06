@@ -8,8 +8,8 @@ class LLMChain:
 
     def __init__(self) -> None:
         """Initialize LLM chain with provider selection."""
-        from zennlogic_ai_service.config import settings
-        from zennlogic_ai_service.llm.providers import (
+        from service.config import settings
+        from service.llm.providers import (
             AnthropicProvider,
             LocalHFProvider,
             OpenAIProvider,

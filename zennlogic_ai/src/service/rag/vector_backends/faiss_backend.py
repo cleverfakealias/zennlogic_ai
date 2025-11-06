@@ -22,7 +22,7 @@ class FaissBackend:
 
     def search(self, query_vec: np.ndarray, k: int) -> list[tuple[str, dict[str, object], float]]:
         """Search for k nearest neighbors."""
-        distances, indices = self.index.search(np.array([query_vec]), k)  # type: ignore
+        distances, indices = self.index.search(np.array([query_vec]), k)
         return [
             (self.texts[i], self.metadatas[i], float(distances[0][idx]))
             for idx, i in enumerate(indices[0])

@@ -1,20 +1,31 @@
 """Simple MCP server stub implementation."""
 
+from collections.abc import Callable
 import logging
+from types import ModuleType
+from typing import Any
 
 
 logger = logging.getLogger(__name__)
 
 
 class MCPServer:
-    """Stub MCP server for development."""
+    """Stub MCP server for development.
 
-    def __init__(self):
+    This is a very small in-process tool registry used by the HTTP wrapper
+    and by local development. Tools are simple modules exposing callables.
+    """
+
+    def __init__(self) -> None:
         """Initialize MCP server."""
-        self.tools = {}
+        self.tools: dict[str, Callable[..., Any]] = {}
 
-    def register_tool(self, tool_module):
-        """Register a tool module."""
+    def register_tool(self, tool_module: ModuleType) -> None:
+        """Register a tool module by collecting its public callables.
+
+        Args:
+            tool_module: A Python module exposing functions to register.
+        """
         # Extract tool functions from the module
         for name in dir(tool_module):
             if not name.startswith("_"):
@@ -22,17 +33,15 @@ class MCPServer:
                 if callable(func):
                     self.tools[name] = func
 
-    def run(self):
+    def run(self) -> None:
         """Run the MCP server (stub)."""
-        logger.info(f"MCP Server running with tools: {list(self.tools.keys())}")
-        # In a real implementation, this would start an MCP server
-        # For now, just log that it's running
+        logger.info("MCP Server running: %s", list(self.tools.keys()))
 
 
-def main():
+def main() -> None:
     """Run MCP server with registered tools."""
     server = MCPServer()
-    from zennlogic_ai_service.mcp_server.tools import health, rag, s3
+    from service.mcp_server.tools import health, rag, s3  # imported for side-effects/registration
 
     server.register_tool(health)
     server.register_tool(rag)

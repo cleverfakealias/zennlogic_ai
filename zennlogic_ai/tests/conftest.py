@@ -1,8 +1,18 @@
 import os
+from pathlib import Path
+import sys
 
-import boto3
-from moto import mock_aws
-import pytest
+
+# Ensure the project's `src` directory is on sys.path during tests so the
+# `service` package (under src/service) can be imported without installing the
+# package into the environment. This keeps tests fast and hermetic.
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+sys.path.insert(0, str(SRC))
+
+import boto3  # noqa: E402
+from moto import mock_aws  # noqa: E402
+import pytest  # noqa: E402
 
 
 # Make sure boto3 has a default region to avoid NoRegionError
