@@ -20,6 +20,21 @@ class FaissBackend:
         self.texts.extend(texts)
         self.metadatas.extend(metadatas)
 
+    def add_vectors(
+        self,
+        vectors: np.ndarray,
+        texts: list[str],
+        metadatas: list[dict[str, object]],
+    ) -> None:
+        """Add precomputed vectors along with texts and metadata to the index."""
+        if vectors.dtype != np.float32:
+            vectors = vectors.astype("float32")
+        if vectors.ndim != 2 or vectors.shape[1] != self.dim:
+            raise ValueError("Invalid vector shape for FAISS index")
+        self.index.add(vectors)
+        self.texts.extend(texts)
+        self.metadatas.extend(metadatas)
+
     def search(self, query_vec: np.ndarray, k: int) -> list[tuple[str, dict[str, object], float]]:
         """Search for k nearest neighbors."""
         distances, indices = self.index.search(np.array([query_vec]), k)

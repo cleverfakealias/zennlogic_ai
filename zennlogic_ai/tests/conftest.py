@@ -13,7 +13,7 @@ try:
 except Exception as exc:  # pragma: no cover - developer environment error
     raise RuntimeError(
         "Tests require the package to be installed in editable mode. "
-        "Run: `pip install -e .[dev,test]` from the repo root"
+        "Run: `pip install -e .[dev]` from the repo root"
     ) from exc
 
 import boto3
