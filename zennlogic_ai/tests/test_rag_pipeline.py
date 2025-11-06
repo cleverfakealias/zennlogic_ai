@@ -1,5 +1,5 @@
-from zennlogic_ai_service.rag.models import Document
-from zennlogic_ai_service.rag.pipeline import RAGPipeline
+from service.rag.models import Document
+from service.rag.pipeline import RAGPipeline
 
 
 def test_rag_pipeline():

@@ -92,9 +92,11 @@ class OpenAIProvider(LLMProvider):
             resp.raise_for_status()
             data = resp.json()
             logger.info("openai.chat.success", model=mdl, tokens=max_tokens)
-            return data["choices"][0]["message"]["content"]
+            # Ensure we return a string (avoid returning raw Any)
+            content = data.get("choices", [])[0].get("message", {}).get("content", "")
+            return str(content)
 
-    async def embed(self, texts: list[str], model: str | None = None):
+    async def embed(self, texts: list[str], model: str | None = None) -> Any:
         """Not implemented: OpenAI embedding."""
         raise NotImplementedError("OpenAI embedding not implemented.")
 
@@ -118,7 +120,7 @@ class AnthropicProvider(LLMProvider):
         messages: list[dict[str, Any]],
         model: str | None = None,
         max_tokens: int | None = None,
-    ):
+    ) -> str:
         """Chat with Anthropic model.
 
         Args:
@@ -150,7 +152,7 @@ class AnthropicProvider(LLMProvider):
             resp.raise_for_status()
             data = resp.json()
             logger.info("anthropic.chat.success", model=mdl, tokens=max_tokens)
-            return data["content"]
+            return str(data.get("content", ""))
 
     def _format_prompt(self, messages: list[dict[str, Any]]) -> str:
         """Format prompt for Anthropic API.
@@ -163,7 +165,7 @@ class AnthropicProvider(LLMProvider):
         """
         return "\n".join(m.get("content", "") for m in messages)
 
-    async def embed(self, texts: list[str], model: str | None = None):
+    async def embed(self, texts: list[str], model: str | None = None) -> Any:
         """Not implemented: Anthropic embedding."""
         raise NotImplementedError("Anthropic embedding not implemented.")
 
@@ -173,7 +175,7 @@ class AnthropicProvider(LLMProvider):
 class LocalHFProvider(LLMProvider):
     """Local HuggingFace provider (downloads/runs any model)."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize LocalHFProvider.
 
         Raises:
@@ -190,7 +192,7 @@ class LocalHFProvider(LLMProvider):
         messages: list[dict[str, Any]],
         model: str | None = None,
         max_tokens: int | None = None,
-    ):
+    ) -> str:
         """Chat with local HuggingFace model.
 
         Args:
@@ -206,7 +208,7 @@ class LocalHFProvider(LLMProvider):
         prompt = self._format_prompt(messages)
         result = pipe(prompt, max_new_tokens=max_tokens or 64)
         logger.info("localhf.chat.success", model=mdl, tokens=max_tokens)
-        return result[0]["generated_text"]
+        return str(result[0].get("generated_text", ""))
 
     def _format_prompt(self, messages: list[dict[str, Any]]) -> str:
         """Format prompt for local HuggingFace model.
@@ -219,6 +221,6 @@ class LocalHFProvider(LLMProvider):
         """
         return "\n".join(m.get("content", "") for m in messages)
 
-    async def embed(self, texts: list[str], model: str | None = None):
+    async def embed(self, texts: list[str], model: str | None = None) -> Any:
         """Not implemented: Local embedding."""
         raise NotImplementedError("Local embedding not implemented.")

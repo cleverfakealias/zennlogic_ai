@@ -3,8 +3,9 @@
 from typing import Any
 
 from fastapi import APIRouter, Body
-from zennlogic_ai_service.config import settings
-from zennlogic_ai_service.llm.chains import LLMChain
+
+from service.config import settings
+from service.llm.chains import LLMChain
 
 
 router = APIRouter()

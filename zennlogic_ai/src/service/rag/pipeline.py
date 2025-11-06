@@ -4,10 +4,11 @@ import os
 from typing import Any
 
 import numpy as np
-from zennlogic_ai_service.config import settings
-from zennlogic_ai_service.rag.embeddings import Embeddings
-from zennlogic_ai_service.rag.models import Document
-from zennlogic_ai_service.rag.vector_backends.factory import get_vector_backend
+
+from service.config import settings
+from service.rag.embeddings import Embeddings
+from service.rag.models import Document
+from service.rag.vector_backends.factory import get_vector_backend
 
 
 class RAGPipeline:
